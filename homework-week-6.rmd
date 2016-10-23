@@ -1,0 +1,176 @@
+---
+title: "homework-week-6"
+author: "Nitin Verma"
+date: "October 22, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo = TRUE,
+  warning = FALSE,
+  comment = "##",
+  prompt = TRUE,
+  tidy = TRUE,
+  tidy.opts = list(width.cutoff = 75),
+  fig.path = "img/"
+  )
+```
+
+# Problem 1
+Write a simple R function, Z.prop.test(), that can perform one- or two-sample Z-tests for proportion data, using the following guidelines.
+  
+  Your function should take the following arguments: p1 and n1 (no default) to pose as the estimated proportion and sample size (i.e., based on your sample data); p2 and n2 (both defaulting to NULL) that contain a second sample's proportion and sample size data in the event of a two-sample test; p0 (no default) as the expected value for the population proportion; and alternative (default "two.sided") and conf.level (default 0.95), to be used in the same way as in the function t.test().
+  
+  When conducting a two-sample test, it should be p1 that is tested as being smaller or larger than p2 when alternative="less" or alternative="greater", the same as in the use of x and y in the function t.test().
+The function should perform a one-sample Z-test using p1, n1, and p0 if either p2 or n2 (or both) is NULL.
+  
+  The function should contain a check for the rules of thumb we have talked about ($n * p > 5$ and $n * (1-p) >5$) to ensure the validity of assuming the normal distribution in both the one- and two-sample settings. If this is violated, the function should still complete but it should also print an appropriate warning message.
+  
+  The function should return a list containing the members Z (the test statistic), P (the appropriate p-value), and CI (the two-sided CI with respect to confidence level).
+  
+## Solution:
+```{r}
+Z.prop.test <- function (p1, n1, p2=NULL, n2=NULL, p0, alternative="two.sided", conf.level=0.95){
+  alpha = 1 - conf.level
+  
+  if (is.null(p2) || is.null(n2)){
+    #Single proportion test, ignore both p2, and n2
+    cat("Single Proportion Z-Test\n")
+    x1 <- p1 * n1 #no. of successes
+    if ( n1 * p1 <= 5 || n1 * (1 - p1) <= 5){
+      print ("WARNING: Rule of thumb for Z-test is violated! Use the results with this warning in mind.")
+    }
+
+    se0 <- sqrt((p0 * (1 - p0)) / n1)
+    Z <- (p1 - p0) / se0
+    
+    cat ("Z: ", Z, "\n")
+    if (alternative == "less") {
+      pval <- pnorm(Z)
+      lower <- 0.0
+      upper <- p1 - qnorm(alpha) * sqrt (p1 * (1 - p1) / n1)
+    }
+    else if (alternative == "two.sided" || is.null(alternative)) {
+      pval <- 2 * (1 - pnorm(Z))
+      lower <- p1 - qnorm(1 - (alpha / 2)) * sqrt (p1 * (1 - p1) / n1)
+      upper <- p1 + qnorm(1 - (alpha / 2)) * sqrt (p1 * (1 - p1) / n1)
+    }
+    else if (alternative == "greater") {
+      pval <- 1 - pnorm(Z)
+      lower <- p1 + qnorm(alpha) * sqrt (p1 * (1 - p1) / n1)
+      upper <- 1.0
+    }
+  } else {
+    #Two proportion test
+    cat("Two Proportion Z-Test\n")
+    p0 = 0
+    x1 <- p1 * n1
+    x2 <- p2 * n2
+    p.star <- (x1 + x2) / (n1 + n2)
+    
+    se <- sqrt( p.star * (1 - p.star) * (1/n1 + 1/n2) )
+    Z <- (p1 - p2 - p0) / se
+    cat ("Z: ", Z, "\n")
+    
+    if (alternative == "less"){
+      pval <- pnorm(Z)
+      #lower <- p1 - p2 - qnorm(1 - alpha/2) * sqrt((p1 * (1-p1)/n1) + (p2 * (1-p2)/n2))
+      lower <- 0.0
+      upper <- p1 - p2 - qnorm(alpha) * se
+    }
+    else if (alternative == "two.sided") {
+      pval <- 2 * (1 - pnorm(Z))
+      lower <- p1 - p2 - qnorm(1 - alpha/2) * se
+      upper <- p1 - p2 + qnorm(1 - alpha/2) * se
+    }
+    else if (alternative == "greater") {
+      pval <- 1 - pnorm(Z)
+      #lower <- p1 - p2 - qnorm(1 - alpha/2) * sqrt((p1 * (1-p1)/n1) + (p2 * (1-p2)/n2))
+      lower <- p1 - p2 + qnorm(alpha) * se
+      upper <- 1.0
+    }
+    
+    ci <- c(lower, upper)
+  }
+  ci <- c(lower, upper)
+  cat("p: ", pval, "\n")
+  cat("Confidence Interval: (", ci[1], ", ", ci[2], ")\n")
+  return (list(Z=Z, p=pval, ci=ci))
+}
+```
+
+#Problem 2
+The dataset from Kamilar and Cooper has in it a large number of variables related to life history and body size. For this exercise, the end aim is to fit a simple linear regression model to predict longevity ("MaxLongevity_m") measured in months from species' brain size ("Brain_Size_Species_Mean") measured in grams. Do the following for both longevity~brain size and log(longevity)~log(brain size).
+
+Fit the regression model and, using {ggplot2}, produce a scatterplot with the fitted line superimposed upon the data. Append the the fitted model equation to your plot (HINT: use the function geom_text()).
+
+Identify and interpret the point estimate of the slope ($\beta_1$), as well as the outcome of the test associated with the hypotheses H0: $\beta_1$ = 0; HA: $\beta_1$ ≠ 0. Also, find a 90 percent CI for the slope ($\beta_1$) parameter.
+
+Using your model, add lines for the 90 percent confidence and prediction interval bands on the plot and add a legend to differentiate between the lines.
+
+Produce a point estimate and associated 90 percent PI for the longevity of a species whose brain weight is 800 gm. Do you trust the model to predict observations accurately for this value of the explanatory variable? Why or why not?
+
+Looking at your two models, which do you think is better? Why?
+
+##Solution:
+```{r}
+library(curl)
+library(ggplot2)
+
+f <- curl("https://raw.githubusercontent.com/difiore/ADA2016/master/KamilarAndCooperData.csv")
+d <- read.csv(f, header=TRUE, sep=",", stringsAsFactors = FALSE)
+d <- na.omit(d[, c('Brain_Size_Species_Mean', 'MaxLongevity_m')]) #keeping only the columns needed, and removing NAs
+head(d)
+```
+###longevity~brain size
+```{r}
+m <- lm(MaxLongevity_m~Brain_Size_Species_Mean, data = d)
+beta0 <- coef(m)[1]
+beta1 <- coef(m)[2]
+beta0
+beta1
+eqn <- paste("longevity = ", round(beta0, digits=3), " + ", round(beta1, digits=3), "* BrainSize")
+
+g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x)
+g <- g + geom_text(data = NULL, x=300, y=200, label=eqn)
+g
+
+summary(m)
+```
+As is evident from the summary above, the value of beta1 is 1.218. i.e. it is more than zero. This means that Longevity is directly proportional to the Brain Size. In other words, longevity increases with the brain size.
+
+Also, as indicated by the p-value for beta1 (which is practically 0), we can safely reject the null hypothesis (beta1 = 0). The 90% CI around beta1 can be found as below:
+```{r}
+ci <- beta1 + c(-1, 1) * qnorm(1 - 0.9) * 0.1101
+ci
+```
+As seen above, the modeled value of beta1 falls within the CI, thereby supporting our alternate hypothesis (beta1 != 0)
+
+```{r}
+testdata = data.frame(bsize = seq(from = 0, to = 500, by = 10))
+ci2 <- predict(m, newdata = testdata, interval = "confidence", level = 0.90)
+#ci2
+df.ci <- data.frame(ci2)
+pi <- predict(m, newdata = testdata, interval = "prediction", level = 0.90)
+df.pi <- data.frame(pi)
+
+g <- g + geom_line(data = df.ci, aes(x = d$Brain_Size_Species_Mean, y = lwr), colour = "blue")
+g <- g + geom_line(data = df.ci, aes(x = d$Brain_Size_Species_Mean, y = upr), colour = "blue")
+g
+
+g <- g + geom_line(data = df.pi, aes(x = d$Brain_Size_Species_Mean, y = lwr), colour = "red")
+g <- g + geom_line(data = df.pi, aes(x = d$Brain_Size_Species_Mean, y = upr), colour = "red")
+g <- g + scale_color_manual(values = c("Prediction Interval" = "red", "Confidence Interval" = "blue", "Fit" = "black"))
+g
+```
+###log(longevity)~log(brain size)
+```{r}
+m <- lm(log(MaxLongevity_m)~log(Brain_Size_Species_Mean), data = d)
+g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m)))
+g <- g + geom_point()
+g <- g + geom_smooth(method = "lm", formula = y ~ x)
+g
+```
