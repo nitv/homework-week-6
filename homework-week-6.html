@@ -163,10 +163,21 @@ $(document).ready(function () {
 +         }
 +     } else {
 +         # Two proportion test
++         if (is.null(p2) || is.null(n2)) {
++             print(&quot;ERROR: Both p2, and n2 should be specified.&quot;)
++             return(NULL)
++         }
++         
 +         cat(&quot;Two Proportion Z-Test\n&quot;)
 +         p0 = 0
 +         x1 &lt;- p1 * n1
 +         x2 &lt;- p2 * n2
++         
++         if (n1 * p1 &lt;= 5 || n1 * (1 - p1) &lt;= 5 || n2 * p2 &lt;= 5 || n2 * (1 - 
++             p2) &lt;= 5) {
++             print(&quot;WARNING: Rule of thumb for Z-test is violated! Use the results with this warning in mind.&quot;)
++         }
++         
 +         p.star &lt;- (x1 + x2)/(n1 + n2)
 +         
 +         se &lt;- sqrt(p.star * (1 - p.star) * (1/n1 + 1/n2))

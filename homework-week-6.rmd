@@ -63,10 +63,20 @@ Z.prop.test <- function (p1, n1, p2=NULL, n2=NULL, p0, alternative="two.sided", 
     }
   } else {
     #Two proportion test
+    if (is.null(p2) || is.null(n2)) {
+      print("ERROR: Both p2, and n2 should be specified.")
+      return(NULL)
+    }
+    
     cat("Two Proportion Z-Test\n")
     p0 = 0
     x1 <- p1 * n1
     x2 <- p2 * n2
+    
+    if ( n1 * p1 <= 5 || n1 * (1 - p1) <= 5 || n2 * p2 <= 5 || n2 * (1 - p2) <= 5){
+      print ("WARNING: Rule of thumb for Z-test is violated! Use the results with this warning in mind.")
+    }
+    
     p.star <- (x1 + x2) / (n1 + n2)
     
     se <- sqrt( p.star * (1 - p.star) * (1/n1 + 1/n2) )
