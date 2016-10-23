@@ -134,7 +134,7 @@ eqn <- paste("longevity = ", round(beta0, digits=3), " + ", round(beta1, digits=
 
 g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
 g <- g + geom_point()
-g <- g + geom_smooth(method = "lm", formula = y ~ x)
+g <- g + geom_smooth(method = "lm", formula = y ~ x, colour = "black")
 g <- g + geom_text(data = NULL, x=300, y=200, label=eqn)
 g
 
@@ -150,27 +150,72 @@ ci
 As seen above, the modeled value of beta1 falls within the CI, thereby supporting our alternate hypothesis (beta1 != 0)
 
 ```{r}
-testdata = data.frame(bsize = seq(from = 0, to = 500, by = 10))
+testdata = data.frame(Brain_Size_Species_Mean = seq(from = 0, to = 500, by = 10))
+#names(testdata) <- c("Brain_Size_Species_Mean")
 ci2 <- predict(m, newdata = testdata, interval = "confidence", level = 0.90)
 #ci2
 df.ci <- data.frame(ci2)
 pi <- predict(m, newdata = testdata, interval = "prediction", level = 0.90)
 df.pi <- data.frame(pi)
 
-g <- g + geom_line(data = df.ci, aes(x = d$Brain_Size_Species_Mean, y = lwr), colour = "blue")
-g <- g + geom_line(data = df.ci, aes(x = d$Brain_Size_Species_Mean, y = upr), colour = "blue")
+g <- g + geom_line(data = df.ci, aes(x = testdata$Brain_Size_Species_Mean, y = lwr), colour = "blue")
+g <- g + geom_line(data = df.ci, aes(x = testdata$Brain_Size_Species_Mean, y = upr), colour = "blue")
 g
 
-g <- g + geom_line(data = df.pi, aes(x = d$Brain_Size_Species_Mean, y = lwr), colour = "red")
-g <- g + geom_line(data = df.pi, aes(x = d$Brain_Size_Species_Mean, y = upr), colour = "red")
-g <- g + scale_color_manual(values = c("Prediction Interval" = "red", "Confidence Interval" = "blue", "Fit" = "black"))
+g <- g + geom_line(data = df.pi, aes(x = testdata$Brain_Size_Species_Mean, y = lwr), colour = "red")
+g <- g + geom_line(data = df.pi, aes(x = testdata$Brain_Size_Species_Mean, y = upr), colour = "red")
+g <- g + scale_colour_manual(values = c("Prediction Interval" = "red", "Confidence Interval" = "blue", "Fit" = "black"))
 g
+
+pt.estimate <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = c(800)), interval = "prediction", level = 0.90)
+pt.estimate
 ```
+
+
+
 ###log(longevity)~log(brain size)
 ```{r}
-m <- lm(log(MaxLongevity_m)~log(Brain_Size_Species_Mean), data = d)
-g <- ggplot(data = d, aes(x = log(Brain_Size_Species_Mean), y = log(MaxLongevity_m)))
-g <- g + geom_point()
-g <- g + geom_smooth(method = "lm", formula = y ~ x)
-g
+dlog <- log(d)
+names(dlog) <- c("logBrain_Size_Species_Mean", "logMaxLongevity_m")
+mlog <- lm(logMaxLongevity_m~logBrain_Size_Species_Mean, data = dlog)
+
+beta0 <- coef(mlog)[1]
+beta1 <- coef(mlog)[2]
+beta0
+beta1
+eqn <- paste("log(longevity) = ", round(beta0, digits=3), " + ", round(beta1, digits=3), "* log(BrainSize)")
+
+g2 <- ggplot(data = dlog, aes(x = logBrain_Size_Species_Mean, y = logMaxLongevity_m))
+g2 <- g2 + geom_point()
+g2 <- g2 + geom_smooth(method = "lm", formula = y ~ x, colour = "black")
+g2 <- g2 + geom_text(data = NULL, x=4, y=4.7, label=eqn)
+g2
+
+summary(mlog)
+```
+Again, since beta1 is more than 0, we conclude that log(longevity) increases with log(brain size).
+Also, given the p-values as seen above, we can safely reject the null hypothesis (beta1 = 0). The 90% CI around beta1 can be found as below:
+```{r}
+ci <- beta1 + c(-1, 1) * qnorm(1 - 0.9) * 0.01781
+ci
+```
+```{r}
+testdata <- data.frame(logBrain_Size_Species_Mean = seq(from = 0, to = 6, by = 0.1))
+ci2 <- predict(mlog, newdata = testdata, interval = "confidence", level = 0.90)
+#ci2
+df.ci <- data.frame(ci2)
+pi <- predict(mlog, newdata = testdata, interval = "prediction", level = 0.90)
+df.pi <- data.frame(pi)
+
+g2 <- g2 + geom_line(data = df.ci, aes(x = testdata$logBrain_Size_Species_Mean, y = lwr), colour = "blue")
+g2 <- g2 + geom_line(data = df.ci, aes(x = testdata$logBrain_Size_Species_Mean, y = upr), colour = "blue")
+g2
+
+g2 <- g2 + geom_line(data = df.pi, aes(x = testdata$logBrain_Size_Species_Mean, y = lwr), colour = "red")
+g2 <- g2 + geom_line(data = df.pi, aes(x = testdata$logBrain_Size_Species_Mean, y = upr), colour = "red")
+g2 <- g2 + scale_colour_manual(values = c("Prediction Interval" = "red", "Confidence Interval" = "blue", "Fit" = "black"))
+g2
+
+pt.estimate <- predict(mlog, newdata = data.frame(logBrain_Size_Species_Mean = c(log(800))), interval = "prediction", level = 0.90)
+pt.estimate
 ```
