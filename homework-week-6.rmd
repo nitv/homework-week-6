@@ -134,9 +134,9 @@ eqn <- paste("longevity = ", round(beta0, digits=3), " + ", round(beta1, digits=
 
 g <- ggplot(data = d, aes(x = Brain_Size_Species_Mean, y = MaxLongevity_m))
 g <- g + geom_point()
-g <- g + geom_smooth(method = "lm", formula = y ~ x, colour = "black")
+g <- g + geom_smooth(method = "lm", formula = y ~ x, aes(colour = "Fit"))
 g <- g + geom_text(data = NULL, x=300, y=200, label=eqn)
-g
+#g
 
 summary(m)
 ```
@@ -158,19 +158,19 @@ df.ci <- data.frame(ci2)
 pi <- predict(m, newdata = testdata, interval = "prediction", level = 0.90)
 df.pi <- data.frame(pi)
 
-g <- g + geom_line(data = df.ci, aes(x = testdata$Brain_Size_Species_Mean, y = lwr), colour = "blue")
-g <- g + geom_line(data = df.ci, aes(x = testdata$Brain_Size_Species_Mean, y = upr), colour = "blue")
-g
+g <- g + geom_line(data = df.ci, aes(x = testdata$Brain_Size_Species_Mean, y = lwr, colour = "CI"))
+g <- g + geom_line(data = df.ci, aes(x = testdata$Brain_Size_Species_Mean, y = upr, colour = "CI"))
+#g
 
-g <- g + geom_line(data = df.pi, aes(x = testdata$Brain_Size_Species_Mean, y = lwr), colour = "red")
-g <- g + geom_line(data = df.pi, aes(x = testdata$Brain_Size_Species_Mean, y = upr), colour = "red")
-g <- g + scale_colour_manual(values = c("Prediction Interval" = "red", "Confidence Interval" = "blue", "Fit" = "black"))
+g <- g + geom_line(data = df.pi, aes(x = testdata$Brain_Size_Species_Mean, y = lwr, colour = "PI"))
+g <- g + geom_line(data = df.pi, aes(x = testdata$Brain_Size_Species_Mean, y = upr, colour = "PI"))
+g <- g + scale_colour_manual(values = c("CI" = "red", "PI" = "blue", "Fit" = "black"), name = "Legend")
 g
 
 pt.estimate <- predict(m, newdata = data.frame(Brain_Size_Species_Mean = c(800)), interval = "prediction", level = 0.90)
 pt.estimate
 ```
-
+As as far as trusting the model is concerned, looking at an r-squared value of ~0.49, it is pretty much at the center of the (0,1) range. If I would only use this model to make very crude predictions, and would not rely on them much for serious research.
 
 
 ###log(longevity)~log(brain size)
@@ -187,9 +187,9 @@ eqn <- paste("log(longevity) = ", round(beta0, digits=3), " + ", round(beta1, di
 
 g2 <- ggplot(data = dlog, aes(x = logBrain_Size_Species_Mean, y = logMaxLongevity_m))
 g2 <- g2 + geom_point()
-g2 <- g2 + geom_smooth(method = "lm", formula = y ~ x, colour = "black")
+g2 <- g2 + geom_smooth(method = "lm", formula = y ~ x, aes(colour="Fit"))
 g2 <- g2 + geom_text(data = NULL, x=4, y=4.7, label=eqn)
-g2
+#g2
 
 summary(mlog)
 ```
@@ -207,15 +207,18 @@ df.ci <- data.frame(ci2)
 pi <- predict(mlog, newdata = testdata, interval = "prediction", level = 0.90)
 df.pi <- data.frame(pi)
 
-g2 <- g2 + geom_line(data = df.ci, aes(x = testdata$logBrain_Size_Species_Mean, y = lwr), colour = "blue")
-g2 <- g2 + geom_line(data = df.ci, aes(x = testdata$logBrain_Size_Species_Mean, y = upr), colour = "blue")
-g2
+g2 <- g2 + geom_line(data = df.ci, aes(x = testdata$logBrain_Size_Species_Mean, y = lwr, colour = "CI"))
+g2 <- g2 + geom_line(data = df.ci, aes(x = testdata$logBrain_Size_Species_Mean, y = upr, colour = "CI"))
+#g2
 
-g2 <- g2 + geom_line(data = df.pi, aes(x = testdata$logBrain_Size_Species_Mean, y = lwr), colour = "red")
-g2 <- g2 + geom_line(data = df.pi, aes(x = testdata$logBrain_Size_Species_Mean, y = upr), colour = "red")
-g2 <- g2 + scale_colour_manual(values = c("Prediction Interval" = "red", "Confidence Interval" = "blue", "Fit" = "black"))
+g2 <- g2 + geom_line(data = df.pi, aes(x = testdata$logBrain_Size_Species_Mean, y = lwr, colour = "PI"))
+g2 <- g2 + geom_line(data = df.pi, aes(x = testdata$logBrain_Size_Species_Mean, y = upr, colour = "PI"))
+g2 <- g2 + scale_colour_manual(values = c("PI" = "blue", "CI" = "red", "Fit" = "black"), name = "Legend")
 g2
 
 pt.estimate <- predict(mlog, newdata = data.frame(logBrain_Size_Species_Mean = c(log(800))), interval = "prediction", level = 0.90)
 pt.estimate
 ```
+For this case (log based model), r-squared is ~0.57 which, although slightly better than for the first case, is still around the half-way mark on the 0 to 1 range. I would keep looking for and working towards a better model so that it could be used for more accurate and confident predictions.
+
+All in all, if one were to pick between the two, then purely on the quantitative comparison of the two r-squared values, one should pick the log-based model. Even if you eye-ball the plots, the log-based plot 'looks' to be a better fit.
